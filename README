@@ -1,0 +1,8 @@
+Jitsi Video Quality Analyzer (JiViQA)
+
+The Jitsi Video Quality Analyzer project is a full-reference Objective Video
+Quality Model and Assesement tool.
+
+A collection of scripts to measure video quality and fluidity.  You can grab
+some test sequences from here: https://media.xiph.org/video/derf/y4m/. It
+requires ffmpeg and dmtx-utils.
