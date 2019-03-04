@@ -4,10 +4,10 @@ import pandas as pd
 import sys
 
 # This is assumed to be the *capture* frame rate, so each frame duration is
-# 1/FRAMERATE.
+# 1/FPMS.
 
-FRAMERATE = 30/1000
-DURATION = 1/FRAMERATE
+FPMS = 30/1000
+DURATION_MS = 1/FPMS
 
 df = pd.read_csv(sys.stdin, index_col='frameno')
 
@@ -17,12 +17,12 @@ durations = []
 
 for i in range(len(df)):
     times.append(time)
-    time += DURATION
+    time += DURATION_MS
 
     if i < 1 or df.loc[i, 'seqno'] != df.loc[i + 1, 'seqno']:
-        durations.append(DURATION)
+        durations.append(DURATION_MS)
     else:
-        durations.append(durations[i-1] + DURATION)
+        durations.append(durations[i-1] + DURATION_MS)
 
 df['time'] = times
 df['duration'] = durations
