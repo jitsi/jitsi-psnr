@@ -15,14 +15,24 @@ time = 0
 times = []
 durations = []
 
-for i in range(len(df)):
+# Compare each frame from 1 to n - 1 with the next one computing how long
+# we stayed on a particular frame along the way.
+current_duration = DURATION_MS
+for i in range(1, len(df)):
     times.append(time)
     time += DURATION_MS
 
-    if i < 1 or df.loc[i, 'seqno'] != df.loc[i + 1, 'seqno']:
-        durations.append(DURATION_MS)
+    # Compare frame i with i + 1 to see if the frame has changed.
+    if df.loc[i, 'seqno'] != df.loc[i + 1, 'seqno']:
+        durations.append(current_duration)
+        current_duration = DURATION_MS
     else:
-        durations.append(durations[i-1] + DURATION_MS)
+        current_duration = current_duration + DURATION_MS
+        durations.append(None)
+
+# This is for the last frame, we can't check whether it's changed or not.
+durations.append(None)
+times.append(None)
 
 df['time'] = times
 df['duration'] = durations
