@@ -26,7 +26,7 @@ FRAMERATE=`ffprobe -show_streams "$INPUT" 2> /dev/null | grep codec_time_base | 
 
 # Extract the individual frames from the input video file.
 mkdir -p "$RAW_FRAMES"
-if [ -z `ls -A "$RAW_FRAMES"` ]
+if [ -z "`ls -A \"$RAW_FRAMES\"`" ]
 then
   CODED_HEIGHT=`ffprobe -show_streams "$INPUT" 2> /dev/null | grep coded_height | cut -d= -f2`
   CODED_WIDTH=`ffprobe -show_streams "$INPUT" 2> /dev/null | grep coded_width | cut -d= -f2`
