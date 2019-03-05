@@ -9,7 +9,8 @@ import sys
 FPMS = 30/1000
 DURATION_MS = 1/FPMS
 
-df = pd.read_csv(sys.stdin, index_col='frameno')
+filepath = sys.argv[1]
+df = pd.read_csv(filepath, index_col='frameno')
 
 time = 0
 times = []
@@ -38,5 +39,5 @@ df['time'] = times
 df['duration'] = durations
 
 print(df.describe())
-df.plot(x='time',y=['psnr', 'duration'], subplots=True)
+df.plot(x='time',y=['psnr', 'duration'], subplots=True, title=filepath)
 plt.show()
