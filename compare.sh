@@ -18,26 +18,26 @@ if [ ! -f "$OUTPUT" ]; then
 fi
 
 WORKING_DIR=`basename "$OUTPUT" | cut -d. -f1`
-RESFRAMES=target/"$WORKING_DIR"/frames
+OUTPUT_FRAMES=target/"$WORKING_DIR"/frames
 DIFFERENCES=target/"$WORKING_DIR"/differences
 DATA=target/"$WORKING_DIR"/data.csv
-SEQUENCED_FRAMES=target/`basename "$INPUT" | cut -d. -f1`/sequenced
+INPUT_FRAMES=target/`basename "$INPUT" | cut -d. -f1`/sequenced
 
 # Extract the individual frames from the result video file.
-mkdir -p "$RESFRAMES"
-if [ -z `ls -A "$RESFRAMES"` ]
+mkdir -p "$OUTPUT_FRAMES"
+if [ -z `ls -A "$OUTPUT_FRAMES"` ]
 then
-  FFMPEG_OPTS=(-i "$OUTPUT" -f image2 "$RESFRAMES/%03d.png")
+  FFMPEG_OPTS=(-i "$OUTPUT" -f image2 "$OUTPUT_FRAMES/%03d.png")
   ffmpeg "${FFMPEG_OPTS[@]}"
 fi
 
 mkdir -p "$DIFFERENCES"
 echo "frameno,seqno,psnr" > "$DATA"
-for RESFRAME in "$RESFRAMES"/*; do
-  FRAMENO=`basename "$RESFRAME" .png`
-  SEQNO=`dmtxread -n "$RESFRAME" --x-range-max 50 --y-range-min 650`
-  SEQUENCED_FRAME="$SEQUENCED_FRAMES/$SEQNO.png"
+for OUTPUT_FRAME in "$OUTPUT_FRAMES"/*; do
+  FRAMENO=`basename "$OUTPUT_FRAME" .png`
+  SEQNO=`dmtxread -n "$OUTPUT_FRAME" --x-range-max 50 --y-range-min 650`
+  INPUT_FRAME="$INPUT_FRAMES/$SEQNO.png"
   DIFFERENCE="$DIFFERENCES/$SEQNO.png"
-  PSNR=`compare "$RESFRAME" "$SEQUENCED_FRAME" -metric PSNR "$DIFFERENCE" 2>&1 || true`
+  PSNR=`compare "$OUTPUT_FRAME" "$INPUT_FRAME" -metric PSNR "$DIFFERENCE" 2>&1 || true`
   echo $FRAMENO,$SEQNO,$PSNR | tee -a "$DATA"
 done
