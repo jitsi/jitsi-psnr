@@ -23,9 +23,9 @@ DIFFERENCES=target/"$WORKING_DIR"/differences
 DATA=target/"$WORKING_DIR"/data.csv
 INPUT_FRAMES=target/`basename "$INPUT" | cut -d. -f1`/sequenced
 
-# Extract the individual frames from the result video file.
+# Extract the individual frames from the output video file.
 mkdir -p "$OUTPUT_FRAMES"
-if [ -z `ls -A "$OUTPUT_FRAMES"` ]
+if [ -z "`ls -A \"$OUTPUT_FRAMES\"`" ]
 then
   FFMPEG_OPTS=(-i "$OUTPUT" -f image2 "$OUTPUT_FRAMES/%03d.png")
   ffmpeg "${FFMPEG_OPTS[@]}"
