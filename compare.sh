@@ -37,10 +37,10 @@ for OUTPUT_FRAME in "$OUTPUT_FRAMES"/*; do
   # Find the corresponding input frame.
   FRAMENO=`basename "$OUTPUT_FRAME" .png`
   SEQNO=`dmtxread -n "$OUTPUT_FRAME" --x-range-max 50 --y-range-min 650 || echo -1`
-  if [ $SEQNO == -1 ]; then
+  INPUT_FRAME="$INPUT_FRAMES/$SEQNO.png"
+  if [ ! -f "$INPUT_FRAME" ]; then
     echo $FRAMENO,-1,-1 | tee -a "$DATA"
   else
-    INPUT_FRAME="$INPUT_FRAMES/$SEQNO.png"
 
     # Identify the input frame and potentially resize the output frame to the
     # input frame geometry before comparing.
