@@ -10,7 +10,7 @@ FPMS = 30/1000
 DURATION_MS = 1/FPMS
 
 filepath = sys.argv[1]
-df = pd.read_csv(filepath, index_col='frameno')
+df = pd.read_csv(filepath, index_col='frame_num', delimiter=' ')
 
 time = 0
 times = []

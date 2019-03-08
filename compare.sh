@@ -21,6 +21,7 @@ WORKING_DIR=`basename "$OUTPUT" | cut -d. -f1`
 OUTPUT_FRAMES=target/"$WORKING_DIR"/frames
 DIFFERENCES=target/"$WORKING_DIR"/differences
 DATA=target/"$WORKING_DIR"/data.csv
+SORTED_DATA=target/"$WORKING_DIR"/sorted.csv
 INPUT_FRAMES=target/`basename "$INPUT" | cut -d. -f1`/sequenced
 
 # Extract the individual frames from the output video file.
@@ -32,14 +33,14 @@ then
 fi
 
 mkdir -p "$DIFFERENCES"
-echo "frameno,seqno,psnr" > "$DATA"
+echo "frame_num sequence_num psnr" > "$DATA"
 for OUTPUT_FRAME in "$OUTPUT_FRAMES"/*; do
   # Find the corresponding input frame.
   FRAMENO=`basename "$OUTPUT_FRAME" .png`
   SEQNO=`dmtxread -n "$OUTPUT_FRAME" --x-range-max 50 --y-range-min 650 || echo -1`
   INPUT_FRAME="$INPUT_FRAMES/$SEQNO.png"
   if [ ! -f "$INPUT_FRAME" ]; then
-    echo $FRAMENO,-1,-1 | tee -a "$DATA"
+    echo $FRAMENO -1 -1 | tee -a "$DATA"
   else
 
     # Identify the input frame and potentially resize the output frame to the
@@ -60,6 +61,8 @@ for OUTPUT_FRAME in "$OUTPUT_FRAMES"/*; do
 
     DIFFERENCE="$DIFFERENCES/$FRAMENO.png"
     PSNR=`compare "$OUTPUT_FRAME" "$INPUT_FRAME" -metric PSNR "$DIFFERENCE" 2>&1 || true`
-    echo $FRAMENO,$SEQNO,$PSNR | tee -a "$DATA"
+    echo $FRAMENO $SEQNO $PSNR | tee -a "$DATA"
   fi
 done
+
+cat "$DATA" | sort -h > "$SORTED_DATA"
