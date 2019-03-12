@@ -1,43 +1,56 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3.7
 import matplotlib.pyplot as plt
 import pandas as pd
 import sys
 
-# This is assumed to be the *capture* frame rate, so each frame duration is
-# 1/FPMS.
+# This is assumed to be the *capture* frame frequency, so each frame period
+# (i.e. how much time it takes for a new frame to be captured) is 1/FREQUENCY.
 
-FPMS = 30/1000
-DURATION_MS = 1/FPMS
+FREQUENCY = 30/1000
+PERIOD_MS = 1/FREQUENCY
 
 filepath = sys.argv[1]
 df = pd.read_csv(filepath, index_col='frame_num', delimiter=' ')
 
-time = 0
-times = []
-durations = []
+frame_num_start = df.index.min()
+frame_num_end = len(df) + frame_num_start - 1
+
+instants = []
+periods = []
 
 # Compare each frame from 1 to n - 1 with the next one computing how long
 # we stayed on a particular frame along the way.
-current_duration = DURATION_MS
-for i in range(1, len(df)):
-    times.append(time)
-    time += DURATION_MS
+current_period = PERIOD_MS
+current_instant = 0
+for frame_num in range(frame_num_start, frame_num_end):
+    instants.append(current_instant)
+    current_instant += PERIOD_MS
 
     # Compare frame i with i + 1 to see if the frame has changed.
-    if df.loc[i, 'seqno'] != df.loc[i + 1, 'seqno']:
-        durations.append(current_duration)
-        current_duration = DURATION_MS
+    cur_seq_num = df.loc[frame_num, 'sequence_num']
+    next_seq_num = df.loc[frame_num + 1, 'sequence_num']
+    if cur_seq_num < 1 or next_seq_num < 1:
+        # we failed to read the sequence number of either the current or the
+        # next frame.
+        periods.append(current_period)
+        current_period = PERIOD_MS
+    elif cur_seq_num != next_seq_num:
+        periods.append(current_period)
+        current_period = PERIOD_MS
     else:
-        current_duration = current_duration + DURATION_MS
-        durations.append(None)
+        current_period = current_period + PERIOD_MS
+        periods.append(None)
 
 # This is for the last frame, we can't check whether it's changed or not.
-durations.append(None)
-times.append(None)
+periods.append(None)
+instants.append(None)
 
-df['time'] = times
-df['duration'] = durations
+df['time'] = instants
+df['period'] = periods
 
-print(df.describe())
-df.plot(x='time',y=['psnr', 'duration'], subplots=True, title=filepath)
-plt.show()
+stats = open(filepath.replace('csv', 'txt'), 'w')
+stats.write(df.describe().to_string())
+stats.close()
+
+df.plot(x='time',y=['psnr', 'period'], subplots=True, title=filepath)
+plt.savefig(filepath.replace('csv', 'pdf'))
