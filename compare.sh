@@ -1,5 +1,4 @@
 #!/bin/sh
-
 set -e
 
 function error_exit {
@@ -7,20 +6,51 @@ function error_exit {
   exit 1
 }
 
+function usage {
+  error_exit "Usage: $0 input-file input-file -min-frame number -max-frame number -crop geometry"
+}
+
 INPUT="$1"
+shift
 if [ ! -f "$INPUT" ]; then
-  error_exit "The input file does not exist."
+  usage
 fi
 
-OUTPUT="$2"
+OUTPUT="$1"
+shift
 if [ ! -f "$OUTPUT" ]; then
-  error_exit "The output file does not exist."
+  usage
+fi
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -min-frame)
+      MIN_FRAME="$2"
+      shift
+      ;;
+    -max-frame)
+      MAX_FRAME="$2"
+      shift
+      ;;
+    -crop)
+      CROP_GEOMETRY="$2"
+      shift
+      ;;
+  esac
+  shift
+done
+
+if [ -z "$MIN_FRAME" ]; then
+  usage
+fi
+
+if [ -z "$MAX_FRAME" ]; then
+  usage
 fi
 
 WORKING_DIR=`basename "$OUTPUT" | cut -d. -f1`
 OUTPUT_FRAMES=target/"$WORKING_DIR"/frames
 DATA=target/"$WORKING_DIR"/data.csv
-SORTED_DATA=target/"$WORKING_DIR"/sorted.csv
 INPUT_FRAMES=target/`basename "$INPUT" | cut -d. -f1`/sequenced
 
 # Extract the individual frames from the output video file.
@@ -32,7 +62,8 @@ then
 fi
 
 echo "frame_num sequence_num psnr" > "$DATA"
-for OUTPUT_FRAME in "$OUTPUT_FRAMES"/*; do
+for i in `seq $MIN_FRAME $MAX_FRAME`; do
+  OUTPUT_FRAME="$OUTPUT_FRAMES"/$i.png
   # Find the corresponding input frame.
   FRAMENO=`basename "$OUTPUT_FRAME" .png`
   SEQNO=`dmtxread -n "$OUTPUT_FRAME" --x-range-max 50 --y-range-min 650 || echo -1`
@@ -57,9 +88,15 @@ for OUTPUT_FRAME in "$OUTPUT_FRAMES"/*; do
       OUTPUT_FRAME="$OUTPUT_FRAME_RESIZED"
     fi
 
-    PSNR=`compare "$OUTPUT_FRAME" "$INPUT_FRAME" -metric PSNR null: 2>&1 || true`
+    if [ -n "$CROP_GEOMETRY" ]; then
+      # output and input frames are cropped to the same size and outut as miff
+      # to standard out. Then they are both piped to compare to get the match
+      # score (from PSNR metric) only.
+      # see https://imagemagick.org/discourse-server/viewtopic.php?t=11786
+      PSNR=`convert "$OUTPUT_FRAME" "$INPUT_FRAME" -crop "$CROP_GEOMETRY" +repage miff:- | compare -metric PSNR - null: 2>&1 || true`
+    else
+      PSNR=`compare "$OUTPUT_FRAME" "$INPUT_FRAME" -metric PSNR null: 2>&1 || true`
+    fi
     echo $FRAMENO $SEQNO $PSNR | tee -a "$DATA"
   fi
 done
-
-cat "$DATA" | sort -h > "$SORTED_DATA"
