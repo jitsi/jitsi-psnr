@@ -19,7 +19,6 @@ fi
 
 WORKING_DIR=`basename "$OUTPUT" | cut -d. -f1`
 OUTPUT_FRAMES=target/"$WORKING_DIR"/frames
-DIFFERENCES=target/"$WORKING_DIR"/differences
 DATA=target/"$WORKING_DIR"/data.csv
 SORTED_DATA=target/"$WORKING_DIR"/sorted.csv
 INPUT_FRAMES=target/`basename "$INPUT" | cut -d. -f1`/sequenced
@@ -32,7 +31,6 @@ then
   ffmpeg "${FFMPEG_OPTS[@]}"
 fi
 
-mkdir -p "$DIFFERENCES"
 echo "frame_num sequence_num psnr" > "$DATA"
 for OUTPUT_FRAME in "$OUTPUT_FRAMES"/*; do
   # Find the corresponding input frame.
@@ -59,8 +57,7 @@ for OUTPUT_FRAME in "$OUTPUT_FRAMES"/*; do
       OUTPUT_FRAME="$OUTPUT_FRAME_RESIZED"
     fi
 
-    DIFFERENCE="$DIFFERENCES/$FRAMENO.png"
-    PSNR=`compare "$OUTPUT_FRAME" "$INPUT_FRAME" -metric PSNR "$DIFFERENCE" 2>&1 || true`
+    PSNR=`compare "$OUTPUT_FRAME" "$INPUT_FRAME" -metric PSNR null: 2>&1 || true`
     echo $FRAMENO $SEQNO $PSNR | tee -a "$DATA"
   fi
 done
