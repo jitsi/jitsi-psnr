@@ -1,12 +1,12 @@
 #!/bin/sh
 set -e
 
-function error_exit {
+error_exit() {
   echo "$1" >&2
   exit 1
 }
 
-function usage {
+usage() {
   error_exit "Usage: $0 input-file input-file -min-frame number -max-frame number -crop geometry"
 }
 
