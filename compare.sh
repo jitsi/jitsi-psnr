@@ -53,14 +53,6 @@ OUTPUT_FRAMES=target/"$WORKING_DIR"/frames
 DATA=target/"$WORKING_DIR"/data.csv
 INPUT_FRAMES=target/`basename "$INPUT" | cut -d. -f1`/sequenced
 
-# Extract the individual frames from the output video file.
-mkdir -p "$OUTPUT_FRAMES"
-if [ -z "`ls -A \"$OUTPUT_FRAMES\"`" ]
-then
-  FFMPEG_OPTS=(-i "$OUTPUT" -f image2 "$OUTPUT_FRAMES/%03d.png")
-  ffmpeg "${FFMPEG_OPTS[@]}"
-fi
-
 echo "frame_num sequence_num psnr" > "$DATA"
 for i in `seq $MIN_FRAME $MAX_FRAME`; do
   OUTPUT_FRAME="$OUTPUT_FRAMES"/$i.png
