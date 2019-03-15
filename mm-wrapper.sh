@@ -21,8 +21,8 @@ if [ ! -f "$UPLINK" -o ! -f "$DOWNLINK" ]; then
 fi
 
 # about the queue length, it's 100ms for a 2.5Mbps stream.
-MM_ARGS="$UPLINK $DOWNLINK"
-MM_ARGS="$ARGS --uplink-queue=droptail --uplink-queue-args=bytes=3125"
-MM_ARGS="$ARGS --downlink-queue=droptail --downlink-queue-args=bytes=3125"
+ARGS="$UPLINK $DOWNLINK"
+ARGS="$ARGS --uplink-queue=droptail --downlink-queue=droptail"
+ARGS="$ARGS --uplink-queue-args=bytes=3125 --downlink-queue-args=bytes=3125"
 
-exec mm-delay 50 mm-link "$UPLINK" "$DOWNLINK" "$@"
+exec mm-delay 50 mm-link $ARGS "$@"
