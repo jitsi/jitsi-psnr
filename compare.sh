@@ -7,20 +7,20 @@ error_exit() {
 }
 
 usage() {
-  error_exit "Usage: $0 input-file input-file -min-frame number -max-frame number -crop geometry"
+  error_exit "Usage: $0 input-directory input-directory -min-frame number -max-frame number -crop geometry"
 }
 
-INPUT="$1"
-shift
-if [ ! -f "$INPUT" ]; then
+INPUT_FRAMES="$1"
+if [ ! -d "$INPUT_FRAMES" ]; then
   usage
 fi
+shift
 
-OUTPUT="$1"
-shift
-if [ ! -f "$OUTPUT" ]; then
+OUTPUT_FRAMES="$1"
+if [ ! -d "$OUTPUT_FRAMES" ]; then
   usage
 fi
+shift
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -48,14 +48,10 @@ if [ -z "$MAX_FRAME" ]; then
   usage
 fi
 
-WORKING_DIR=`basename "$OUTPUT" | cut -d. -f1`
-OUTPUT_FRAMES=target/"$WORKING_DIR"/frames
-DATA=target/"$WORKING_DIR"/data.csv
-INPUT_FRAMES=target/`basename "$INPUT" | cut -d. -f1`/sequenced
+DATA=`echo $OUTPUT_FRAMES | sed 's:/*$::'`.csv
 
 echo "frame_num sequence_num psnr" > "$DATA"
-for i in `seq $MIN_FRAME $MAX_FRAME`; do
-  OUTPUT_FRAME="$OUTPUT_FRAMES"/$i.png
+for OUTPUT_FRAME in `seq -f "$OUTPUT_FRAMES/%03g.png" $MIN_FRAME $MAX_FRAME`; do
   # Find the corresponding input frame.
   FRAMENO=`basename "$OUTPUT_FRAME" .png`
   SEQNO=`dmtxread -n "$OUTPUT_FRAME" --x-range-max 50 --y-range-min 650 || echo -1`
@@ -63,23 +59,6 @@ for i in `seq $MIN_FRAME $MAX_FRAME`; do
   if [ ! -f "$INPUT_FRAME" ]; then
     echo $FRAMENO -1 -1 | tee -a "$DATA"
   else
-
-    # Identify the input frame and potentially resize the output frame to the
-    # input frame geometry before comparing.
-    INPUT_GEOMETRY=`identify "$INPUT_FRAME" | rev | cut -d' ' -f7 | rev`
-    OUTPUT_GEOMETRY=`identify "$OUTPUT_FRAME" | rev | cut -d' ' -f7 | rev`
-    if [ $INPUT_GEOMETRY != $OUTPUT_GEOMETRY ]; then
-      RESIZED_FRAMES=target/"$WORKING_DIR"/$INPUT_GEOMETRY
-      mkdir -p "$RESIZED_FRAMES"
-      OUTPUT_FRAME_RESIZED="$RESIZED_FRAMES/$FRAMENO.png"
-      if [ ! -f "$OUTPUT_FRAME_RESIZED" ]; then
-        # For some bizzare reason Windows captures 1376x776, which is different
-        # than the native screen resolution (1366x768).
-        convert "$OUTPUT_FRAME" -resize ${INPUT_GEOMETRY}! "$OUTPUT_FRAME_RESIZED"
-      fi
-      OUTPUT_FRAME="$OUTPUT_FRAME_RESIZED"
-    fi
-
     if [ -n "$CROP_GEOMETRY" ]; then
       # output and input frames are cropped to the same size and outut as miff
       # to standard out. Then they are both piped to compare to get the match
