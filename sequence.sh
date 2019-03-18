@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 set -e
 
@@ -7,60 +7,54 @@ function error_exit {
   exit 1
 }
 
-INPUT="$1"
-if [ ! -f "$INPUT" ]; then
-  error_exit "The input file does not exist."
+INPUT_FRAMES="$1"
+if [ ! -d "$INPUT_FRAMES" ]; then
+  error_exit "The input frames directory does not exist."
 fi
+shift
 
-OUTPUT=target/`basename "$INPUT"`
+OUTPUT="$1"
 if [ -f "$OUTPUT" ];
 then
   error_exit "The output video file already exists."
 fi
+shift
 
-SEQUENCED_FRAMES=target/`basename "$INPUT" | cut -d. -f1`/sequenced
-RAW_FRAMES=target/`basename "$INPUT" | cut -d. -f1`/raw
-BARCODES=target/barcodes
+FRAMERATE=$1
+if [ -z "$FRAMERATE" ]; then
+  error_exit "The frame rate is required."
+fi
+shift
 
-FRAMERATE=`ffprobe -show_streams "$INPUT" 2> /dev/null | grep codec_time_base | cut -d/ -f2`
-
-# Extract the individual frames from the input video file.
-mkdir -p "$RAW_FRAMES"
-if [ -z "`ls -A \"$RAW_FRAMES\"`" ]
-then
-  CODED_HEIGHT=`ffprobe -show_streams "$INPUT" 2> /dev/null | grep coded_height | cut -d= -f2`
-  CODED_WIDTH=`ffprobe -show_streams "$INPUT" 2> /dev/null | grep coded_width | cut -d= -f2`
-  VIDEO_SIZE=${CODED_WIDTH}x${CODED_HEIGHT}
-
-  FFMPEG_OPTS=(-i "$INPUT")
-  FFMPEG_OPTS=("${FFMPEG_OPTS[@]}" -framerate $FRAMERATE)
-  FFMPEG_OPTS=("${FFMPEG_OPTS[@]}" -video_size $VIDEO_SIZE)
-  FFMPEG_OPTS=("${FFMPEG_OPTS[@]}" -f image2 "$RAW_FRAMES/%03d.png")
-  ffmpeg "${FFMPEG_OPTS[@]}"
+PIX_FMT=$1
+if [ -z "$PIX_FMT" ]; then
+  error_exit "The pixel format is required."
 fi
 
+OUTPUT_FRAMES="`echo $OUTPUT | cut -d. -f1`"
+BARCODES=target/barcodes
+
 # Inject a sequence number into each frame.
-mkdir -p "$BARCODES" "$SEQUENCED_FRAMES"
-for RAW_FRAME in "$RAW_FRAMES"/*
+mkdir -p "$BARCODES" "$OUTPUT_FRAMES"
+for INPUT_FRAME in "$INPUT_FRAMES"/*
 do
-  SEQUENCED_FRAME="$SEQUENCED_FRAMES"/`basename "$RAW_FRAME"`
-  if [ ! -f "$SEQUENCED_FRAME" ];
+  OUTPUT_FRAME="$OUTPUT_FRAMES"/`basename "$INPUT_FRAME"`
+  if [ ! -f "$OUTPUT_FRAME" ];
   then
-    BARCODE="$BARCODES"/`basename "$RAW_FRAME"`
+    BARCODE="$BARCODES"/`basename "$INPUT_FRAME"`
     if [ ! -f "$BARCODE" ];
     then
-      echo `basename "$RAW_FRAME" .png`\\c | dmtxwrite -o "$BARCODE"
+      echo `basename "$INPUT_FRAME" .png`\\c | dmtxwrite -o "$BARCODE" -d 16 -m 1
     fi
 
-    FFMPEG_OPTS=(-i "$RAW_FRAME" -i "$BARCODE")
+    FFMPEG_OPTS=(-i "$INPUT_FRAME" -i "$BARCODE")
     FFMPEG_OPTS=("${FFMPEG_OPTS[@]}" -filter_complex overlay=10:10)
-    FFMPEG_OPTS=("${FFMPEG_OPTS[@]}" "$SEQUENCED_FRAME")
+    FFMPEG_OPTS=("${FFMPEG_OPTS[@]}" "$OUTPUT_FRAME")
     ffmpeg "${FFMPEG_OPTS[@]}"
   fi
 done
 
-PIX_FMT=`ffprobe -show_streams "$INPUT" 2> /dev/null | grep pix_fmt | cut -d= -f2`
-FFMPEG_OPTS=(-f image2 -framerate $FRAMERATE -i "$SEQUENCED_FRAMES/%03d.png")
+FFMPEG_OPTS=(-f image2 -framerate $FRAMERATE -i "$OUTPUT_FRAMES/%03d.png")
 FFMPEG_OPTS=("${FFMPEG_OPTS[@]}" -pix_fmt $PIX_FMT)
 FFMPEG_OPTS=("${FFMPEG_OPTS[@]}" "$OUTPUT")
 ffmpeg "${FFMPEG_OPTS[@]}"
