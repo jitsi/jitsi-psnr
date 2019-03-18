@@ -9,7 +9,7 @@ import sys
 FREQUENCY = 30/1000
 PERIOD_MS = 1/FREQUENCY
 
-def plot_file(filepath, ax_psnr, ax_period):
+def read_csv(filepath):
     df = pd.read_csv(filepath, index_col='frame_num', delimiter=' ')
 
     frame_num_start = df.index.min()
@@ -48,23 +48,39 @@ def plot_file(filepath, ax_psnr, ax_period):
     df['time'] = instants
     df['period'] = periods
 
+    return df
+
+def plot_file(df, ax_psnr, ax_period):
     #df = df[df['psnr'] > -1]
     ax_psnr.plot(df['time'], df['psnr'])
     ax_period.plot(df['time'], df['period'])
 
 def main():
-    if len(sys.argv) == 3:
-        filename1 = sys.argv[1]
-        filename2 = sys.argv[2]
-        f, (ax1, ax2, ax3) = plt.subplots(3, sharex=True)
-        plot_file(filename1, ax1, ax3)
-        plot_file(filename2, ax1, ax3)
-        plt.savefig('/home/gpolitis/Videos/compare.pdf')
+    if sys.argv[1] == "plot":
+        if len(sys.argv) == 4:
+            filename1 = sys.argv[2]
+            filename2 = sys.argv[3]
+            df1 = read_csv(filename1)
+            df2 = read_csv(filename2)
+            f, (ax1, ax2, ax3) = plt.subplots(3, sharex=True)
+            plot_file(df1, ax1, ax3)
+            plot_file(df2, ax1, ax3)
+            plt.savefig('/home/gpolitis/Videos/compare.pdf')
+        elif len(sys.argv) == 3:
+            filename1 = sys.argv[2]
+            df1 = read_csv(filename1)
+            f, (ax1, ax2) = plt.subplots(2, sharex=True)
+            plot_file(df1, ax1, ax2)
+            plt.savefig(sys.argv[2].replace('csv', 'pdf'))
+    elif sys.argv[1] == "describe":
+        filename1 = sys.argv[2]
+        df1 = read_csv(filename1)
+        print(df1.describe())
     elif len(sys.argv) == 2:
         filename1 = sys.argv[1]
-        f, (ax1, ax2) = plt.subplots(2, sharex=True)
-        plot_file(filename1, ax1, ax2)
-        plt.savefig(sys.argv[1].replace('csv', 'pdf'))
+        df1 = read_csv(filename1)
+        df1.to_csv(sys.stdout, sep=' ')
+
 
 if __name__ == "__main__":
     main()
