@@ -54,7 +54,8 @@ echo "frame_num sequence_num psnr" > "$DATA"
 for OUTPUT_FRAME in `seq -f "$OUTPUT_FRAMES/%03g.png" $MIN_FRAME $MAX_FRAME`; do
   # Find the corresponding input frame.
   FRAMENO=`basename "$OUTPUT_FRAME" .png`
-  SEQNO=`dmtxread -n "$OUTPUT_FRAME" --x-range-max 50 --y-range-min 650 || echo -1`
+  #SEQNO=`convert "$OUTPUT_FRAME" -crop 68x68+10+10 miff:- | dmtxread - || echo -1`
+  SEQNO=`convert "$OUTPUT_FRAME" -crop 198x198+9+9 miff:- | convert - -background white -gravity center -extent 300x300 miff:- | dmtxread - | cut -d'\' -f1|| echo -1`
   INPUT_FRAME="$INPUT_FRAMES/$SEQNO.png"
   if [ ! -f "$INPUT_FRAME" ]; then
     echo $FRAMENO -1 -1 | tee -a "$DATA"
