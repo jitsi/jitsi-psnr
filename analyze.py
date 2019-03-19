@@ -57,15 +57,13 @@ def plot_file(df, ax_psnr, ax_period):
 
 def main():
     if sys.argv[1] == "plot":
-        if len(sys.argv) == 4:
-            filename1 = sys.argv[2]
-            filename2 = sys.argv[3]
-            df1 = read_csv(filename1)
-            df2 = read_csv(filename2)
-            f, (ax1, ax2, ax3) = plt.subplots(3, sharex=True)
-            plot_file(df1, ax1, ax3)
-            plot_file(df2, ax1, ax3)
-            plt.savefig('/home/gpolitis/Videos/compare.pdf')
+        if len(sys.argv) >= 4:
+            f, (ax1, ax2) = plt.subplots(2, sharex=True)
+            for i in range(2, len(sys.argv)):
+                filename = sys.argv[i]
+                df = read_csv(filename)
+                plot_file(df, ax1, ax2)
+            plt.savefig('/home/gpolitis/Videos/compare.png')
         elif len(sys.argv) == 3:
             filename1 = sys.argv[2]
             df1 = read_csv(filename1)
@@ -80,7 +78,6 @@ def main():
         filename1 = sys.argv[1]
         df1 = read_csv(filename1)
         df1.to_csv(sys.stdout, sep=' ')
-
 
 if __name__ == "__main__":
     main()
