@@ -55,20 +55,25 @@ for OUTPUT_FRAME in `seq -f "$OUTPUT_FRAMES/%03g.png" $MIN_FRAME $MAX_FRAME`; do
   # Find the corresponding input frame.
   FRAMENO=`basename "$OUTPUT_FRAME" .png`
   #SEQNO=`convert "$OUTPUT_FRAME" -crop 68x68+10+10 miff:- | dmtxread - || echo -1`
-  SEQNO=`convert "$OUTPUT_FRAME" -crop 198x198+9+9 miff:- | convert - -background white -gravity center -extent 300x300 miff:- | dmtxread - | cut -d'\' -f1|| echo -1`
-  INPUT_FRAME="$INPUT_FRAMES/$SEQNO.png"
-  if [ ! -f "$INPUT_FRAME" ]; then
-    echo $FRAMENO -1 -1 | tee -a "$DATA"
+  NEW_SEQNO=`convert "$OUTPUT_FRAME" -crop 198x198+9+9 miff:- | convert - -background white -gravity center -extent 300x300 miff:- | dmtxread - | cut -d'\' -f1|| echo -1`
+  if [ -n "$SEQNO" -a "$SEQNO" = "$NEW_SEQNO" ]; then
+      echo $FRAMENO $SEQNO $PSNR | tee -a "$DATA"
   else
-    if [ -n "$CROP_GEOMETRY" ]; then
-      # output and input frames are cropped to the same size and outut as miff
-      # to standard out. Then they are both piped to compare to get the match
-      # score (from PSNR metric) only.
-      # see https://imagemagick.org/discourse-server/viewtopic.php?t=11786
-      PSNR=`convert "$OUTPUT_FRAME" "$INPUT_FRAME" -crop "$CROP_GEOMETRY" +repage miff:- | compare -metric PSNR - null: 2>&1 || true`
+    SEQNO=$NEW_SEQNO
+    INPUT_FRAME="$INPUT_FRAMES/$SEQNO.png"
+    if [ ! -f "$INPUT_FRAME" ]; then
+      echo $FRAMENO -1 -1 | tee -a "$DATA"
     else
-      PSNR=`compare "$OUTPUT_FRAME" "$INPUT_FRAME" -metric PSNR null: 2>&1 || true`
+      if [ -n "$CROP_GEOMETRY" ]; then
+        # output and input frames are cropped to the same size and outut as miff
+        # to standard out. Then they are both piped to compare to get the match
+        # score (from PSNR metric) only.
+        # see https://imagemagick.org/discourse-server/viewtopic.php?t=11786
+        PSNR=`convert "$OUTPUT_FRAME" "$INPUT_FRAME" -crop "$CROP_GEOMETRY" +repage miff:- | compare -metric PSNR - null: 2>&1 || true`
+      else
+        PSNR=`compare "$OUTPUT_FRAME" "$INPUT_FRAME" -metric PSNR null: 2>&1 || true`
+      fi
+      echo $FRAMENO $SEQNO $PSNR | tee -a "$DATA"
     fi
-    echo $FRAMENO $SEQNO $PSNR | tee -a "$DATA"
   fi
 done
