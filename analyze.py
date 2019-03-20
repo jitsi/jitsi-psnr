@@ -50,32 +50,51 @@ def read_csv(filepath):
             current_period = current_period + PERIOD_MS
             periods.append(None)
 
-    # This is for the last frame, we can't check whether it's changed or not.
-    periods.append(None)
+    # This is for the last frame.
+    if cur_seq_num != next_seq_num:
+        periods.append(PERIOD_MS)
+    else:
+        periods.append(current_period)
     instants.append(current_instant + PERIOD_MS)
 
     df['time'] = instants
     df['period'] = periods
-
+    df = df.reset_index().set_index('time')
     return df
 
 def plot_file(df, ax_psnr, ax_period):
-    ax_psnr.plot(df['time'], df['psnr'])
-    ax_period.plot(df['time'], df['period'])
+    ax_psnr.plot(df.index, df['psnr'])
+    ax_period.plot(df.index, df['period'])
+
+def df_list_align(df_list):
+    new_df_list = []
+    min_end = min(map(lambda df: df.frame_num.max(), df_list))
+    max_start = max(map(lambda df: df[df.psnr.notnull()].frame_num.min(), df_list))
+    for df in df_list:
+        end = df.frame_num.max()
+        df = df[df.frame_num >= max_start]
+        df = df.shift(min_end - end)
+        new_df_list.append(df)
+
+    return new_df_list
 
 def main():
     if sys.argv[1] == "plot":
         if len(sys.argv) >= 4:
             f, (ax1, ax2) = plt.subplots(2, sharex=True)
             commonprefix = None
+            df_list = []
             for i in range(2, len(sys.argv)):
                 filename = sys.argv[i]
                 if commonprefix is None:
                     commonprefix = filename
                 else:
                     commonprefix = os.path.commonprefix([filename, commonprefix])
-                df = read_csv(filename)
+                df_list.append(read_csv(filename))
+
+            for df in df_list_align(df_list):
                 plot_file(df, ax1, ax2)
+
             commonprefix = commonprefix.rstrip('_')
             plt.savefig(commonprefix + '.png')
         elif len(sys.argv) == 3:
@@ -87,14 +106,15 @@ def main():
             plt.savefig(sys.argv[2].replace('csv', 'png'))
     elif sys.argv[1] == "describe":
         args_len = len(sys.argv)
+        df_list = []
         for i in range(2, args_len):
             filename1 = sys.argv[i]
-            if args_len > 3:
-                print(filename1)
-            df1 = read_csv(filename1)
+            df_list.append(read_csv(filename1))
+
+        for df1 in df_list_align(df_list):
             print(df1.describe())
             freeze_duration = df1[df1['period'] > FREEZE_THRESHOLD_MS]['period'].sum()
-            total_duration = df1['time'].max()
+            total_duration = df1.index.max()
             print('Freeze percentage: ' + str(freeze_duration / total_duration))
     elif len(sys.argv) == 2:
         filename1 = sys.argv[1]
