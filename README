@@ -6,3 +6,21 @@ Quality Model and Assesement tool.
 A collection of scripts to measure video quality and fluidity.  You can grab
 some test sequences from here: https://media.xiph.org/video/derf/y4m/. It
 requires ffmpeg and dmtx-utils.
+
+Use this command to expand the frames.
+
+```
+ffmpeg -i video-file -f image2 ~/Videos/Captures/ATT-LTE-driving-2016_p2p_meet_1121212111212/%03d.png"
+```
+
+Use this command to capture.
+
+```
+ffmpeg -loglevel quiet -video_size 1280x720 -framerate 30 -f x11grab -draw_mouse 0 -i :0.0 -c:v libx264 -crf 0 -preset ultrafast Videos/Captures/ATT-LTE-driving-2016_p2p_meet_`date +%s`.mp4
+```
+
+Use this command to emulate:
+
+```
+exec mm-delay 50 mm-link uplink downlink --uplink-queue=droptail --downlink-queue=droptail --uplink-queue-args=bytes=3125 --downlink-queue-args=bytes=3125 [ -- command... ]
+```
