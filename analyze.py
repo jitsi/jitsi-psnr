@@ -10,7 +10,6 @@ import os
 
 FREQUENCY = 30/1000
 PERIOD_MS = 1/FREQUENCY
-FREEZE_THRESHOLD_MS = 70
 
 def read_csv(filepath):
     df = pd.read_csv(filepath, index_col='frame_num', delimiter=' ')
@@ -102,6 +101,11 @@ def plot_command():
         ax2.legend()
         plt.savefig(sys.argv[2].replace('csv', 'png'))
 
+def compute_freeze(df1, freeze_threshold_ms):
+    freeze_duration = df1[df1['period'] > freeze_threshold_ms]['period'].sum()
+    total_duration = (df1.index.max() - df1.index.min()) * PERIOD_MS
+    print(str(freeze_threshold_ms) + ' freeze percentage: ' + str(freeze_duration / total_duration))
+
 def describe_command():
     args_len = len(sys.argv)
     df_list = []
@@ -116,11 +120,8 @@ def describe_command():
         print(file_list[i])
         df1 = df_list[i]
         print(df1.describe())
-        freeze_duration = df1[df1['period'] > FREEZE_THRESHOLD_MS]['period'].sum()
-        total_duration = (df1.index.max() - df1.index.min()) * PERIOD_MS
-        print('Total duration: ' + str(total_duration))
-        print('Freeze duration: ' + str(freeze_duration))
-        print('Freeze percentage: ' + str(freeze_duration / total_duration))
+        compute_freeze(df1, 70)
+        compute_freeze(df1, 100)
 
 def main():
     if sys.argv[1] == "plot":
