@@ -17,6 +17,7 @@ def read_csv(filepath):
 
 def augment_dataframe(df):
     df['next_source_frame'] = df['source_frame'].shift(-1)
+    df['previous_source_frame'] = df['source_frame'].shift(1)
 
     periods = []
     # Compare each frame from 1 to n - 1 with the next one computing how long
@@ -26,8 +27,15 @@ def augment_dataframe(df):
         # Compare frame i with i + 1 to see if the frame has changed.
         source_frame = row['source_frame']
         next_source_frame = row['next_source_frame']
+        previous_source_frame = row['previous_source_frame']
 
-        if math.isnan(source_frame) or math.isnan(next_source_frame):
+        if math.isnan(next_source_frame):
+            # This is handling the last frame.
+            if source_frame != previous_source_frame:
+                periods.append(PERIOD_MS)
+            else:
+                periods.append(current_period)
+        elif math.isnan(source_frame):
             periods.append(None)
         elif source_frame != next_source_frame:
             periods.append(current_period)
@@ -38,6 +46,7 @@ def augment_dataframe(df):
 
     df['period'] = periods
     df = df.drop('next_source_frame', axis=1) # drop helper column
+    df = df.drop('previous_source_frame', axis=1) # drop helper column
 
     return df
 
