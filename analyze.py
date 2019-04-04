@@ -1,9 +1,7 @@
 #!/usr/bin/env python
-import matplotlib.pyplot as plt
 import pandas as pd
 import sys
 import math
-import os
 
 # This is assumed to be the *capture* frame frequency, so each frame period
 # (i.e. how much time it takes for a new frame to be captured) is 1/FREQUENCY.
@@ -12,41 +10,34 @@ FREQUENCY = 30/1000
 PERIOD_MS = 1/FREQUENCY
 
 def read_csv(filepath):
-    df = pd.read_csv(filepath, index_col='frame_num', delimiter=' ')
+    if filepath is '-':
+        filepath = sys.stdin
+    df = pd.read_csv(filepath, index_col='capture_frame', delimiter=' ')
     return augment_dataframe(df)
 
 def augment_dataframe(df):
-    df['next_sequence_num'] = df['sequence_num'].shift(-1)
+    df['next_source_frame'] = df['source_frame'].shift(-1)
 
     periods = []
     # Compare each frame from 1 to n - 1 with the next one computing how long
     # we stayed on a particular frame along the way.
     current_period = PERIOD_MS
-    prev_seq_num = None
-    for frame_num, row in df.iterrows():
+    for capture_frame, row in df.iterrows():
         # Compare frame i with i + 1 to see if the frame has changed.
-        cur_seq_num = row['sequence_num']
-        next_seq_num = row['next_sequence_num']
-        if math.isnan(cur_seq_num) or cur_seq_num < 1 or next_seq_num < 1:
-            raise Exception('Illegal sequence number')
+        source_frame = row['source_frame']
+        next_source_frame = row['next_source_frame']
 
-        if math.isnan(next_seq_num):
-            # This is handling the last frame.
-            if cur_seq_num != prev_seq_num:
-                periods.append(PERIOD_MS)
-            else:
-                periods.append(current_period)
-        elif cur_seq_num != next_seq_num:
+        if math.isnan(source_frame) or math.isnan(next_source_frame):
+            periods.append(None)
+        elif source_frame != next_source_frame:
             periods.append(current_period)
             current_period = PERIOD_MS
         else:
             current_period = current_period + PERIOD_MS
             periods.append(None)
 
-        prev_seq_num = cur_seq_num
-
     df['period'] = periods
-    df = df.drop('next_sequence_num', axis=1) # drop helper column
+    df = df.drop('next_source_frame', axis=1) # drop helper column
 
     return df
 
@@ -61,17 +52,19 @@ def align_dataframes(df_list):
     # end frame. The start frame can correspond to different instants depending
     # the time it takes for the first media to appear.
     min_end = min(map(lambda df: df.index.max(), df_list))
-    max_start = max(map(lambda df: df[df.psnr.notnull()].index.min(), df_list))
+    max_start = max(map(lambda df: df[df['source_frame'].notnull()].index.min(), df_list))
     for df in df_list:
         end = df.index.max()
         df = df[df.index >= max_start]
         df = df.shift(min_end - end)
-        df = df[df.psnr.notnull()]
+        df = df[df['source_frame'].notnull()]
         new_df_list.append(df)
 
     return new_df_list
 
 def plot_command():
+    import matplotlib.pyplot as plt
+    import os
     if len(sys.argv) >= 4:
         f, (ax1, ax2) = plt.subplots(2, sharex=True)
         commonprefix = None
