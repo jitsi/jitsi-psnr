@@ -13,14 +13,15 @@ Use this command to expand the frames.
 ffmpeg -i video-file -f image2 ~/Videos/Captures/ATT-LTE-driving-2016_p2p_meet_1121212111212/%03d.png"
 ```
 
-Use this command to capture.
+We use this command to capture. It encodes lossless h264 (https://trac.ffmpeg.org/wiki/Encode/H.264). We set the resolution at the receiver to be 1280x720, so
+no re-scaling is necessary to compare the PSNR.
 
 ```
 ffmpeg -loglevel quiet -video_size 1280x720 -framerate 30 -f x11grab -draw_mouse 0 -i :0.0 -c:v libx264 -crf 0 -preset ultrafast Videos/Captures/ATT-LTE-driving-2016_p2p_meet_`date +%s`.mp4
 ```
 
-Use this command to emulate:
+We use this command to emulate with Mahimahi. 31250 bytes is 100ms @ 2.5Mbps
 
 ```
-exec mm-delay 50 mm-link uplink downlink --uplink-queue=droptail --downlink-queue=droptail --uplink-queue-args=bytes=3125 --downlink-queue-args=bytes=3125 [ -- command... ]
+mm-delay 50 mm-link uplink downlink --uplink-queue=droptail --downlink-queue=droptail --uplink-queue-args=bytes=31250 --downlink-queue-args=bytes=31250 [ -- command... ]
 ```
