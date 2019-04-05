@@ -1,9 +1,9 @@
-#!/bin/bash
+#!/bin/sh
 
 for video_path in "$@"; do
   frames_dirname=`dirname $video_path`/`basename $video_path .mp4`
   frames_map=$frames_dirname.map
-  trimmed_map=${frames_map}.trimmed
+  trimmed_map=$frames_map.trimmed
   augmented_map=$frames_dirname.augmented
   video_desc=$frames_dirname.desc
 
@@ -35,7 +35,6 @@ for video_path in "$@"; do
   fi
 
   if [ ! -f $video_desc ]; then
-    echo skip
-    # cat $augmented_map | python3 analyze.py freeze-score | tee $video_desc
+    cat $augmented_map | python3 analyze.py describe | tee $video_desc
   fi
 done

@@ -96,7 +96,7 @@ def compute_freezes(df1, freeze_threshold_ms):
     total_duration = len(df1) * PERIOD_MS
     print(str(freeze_threshold_ms) + ' freeze percentage: ' + str(freeze_duration / total_duration))
 
-def freezes_command():
+def describe_command():
     df = read_csv(sys.stdin)
     compute_freezes(df, 70)
     compute_freezes(df, 100)
@@ -114,8 +114,8 @@ def main():
         plot_command()
     elif sys.argv[1] == "trim":
         trim_command()
-    elif sys.argv[1] == "freeze-score":
-        freezes_command()
+    elif sys.argv[1] == "describe":
+        describe_command()
     elif sys.argv[1] == "augment":
         augment_command()
 
