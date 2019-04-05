@@ -16,9 +16,7 @@ if [ ! -d "$FRAMES_DIR" ]; then
 fi
 shift
 
-DATA=`echo $FRAMES_DIR | sed 's:/*$::'`.map
-
-echo "capture_frame input_frame" > "$DATA"
+echo "capture_frame input_frame"
 FRAME_NO=1
 while true; do
  FRAME="$FRAMES_DIR/$FRAME_NO.png" 
@@ -27,6 +25,6 @@ while true; do
  fi
 
  SEQNO=`convert "$FRAME" -crop 198x198+9+9 miff:- | convert - -background white -gravity center -extent 300x300 miff:- | dmtxread -m 100 - | cut -d'\' -f1|| echo -1`
-  echo $FRAME_NO $SEQNO | tee -a "$DATA"
+  echo $FRAME_NO $SEQNO
   FRAME_NO=`expr $FRAME_NO + 1`
 done
