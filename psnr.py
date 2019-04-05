@@ -21,7 +21,7 @@ def next_frame(f):
 # Computes the psnr between a captured frame and a refenrence frame. Prints to
 # stdout, diagnostic output goes to stderr.
 def compute_diff(captured_frame_id, source_frame_id):
-    print(str(source_frame_id)+" "+str(captured_frame_id))
+    print(str(source_frame_id)+","+str(captured_frame_id))
 
 def error(x):
     print(x, file=sys.stderr)
@@ -34,7 +34,7 @@ def error(x):
 # The results go to stdout, stderr has debug info
 df = pd.read_csv(sys.stdin, delimiter=' ')
 
-print("input_frame capture_frame")
+print("input_frame,capture_frame")
 previous_source_frame_id = -1
 for x, row in df.iterrows():
     capture_frame_id = int(row[0])

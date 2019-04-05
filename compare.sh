@@ -1,32 +1,36 @@
-#!/bin/sh
-set -e
+#!/bin/bash
+#set -e
+#set -x
 
-error_exit() {
-  echo "$1" >&2
+if [[ -z "$1" || -z "$2" ]] ;then
+  echo "Usage: $0 <file.png> <reference-frame-id>"
   exit 1
-}
+fi
 
-usage() {
-  error_exit "Usage: $0 template"
-}
-
-echo "capture_frame input_frame psnr"
-while read capture_frame new_input_frame; do
-  if [ -z "$new_input_frame" ]; then
+capture_dir=$2
+reference_dir=$3
+template_file=$4
+tmp=`mktemp -d`
+# while read source_frame capture_frame; do
+for line in `cat $1`
+do
+  source_frame=`echo $line | cut -d',' -f1`
+  capture_frame=`echo $line | cut -d',' -f2`
+  
+  capture_file="${capture_dir}/$capture_frame.png"
+  if [ ! -f $capture_file ]; then
     continue
   fi
+  reference_file="${reference_dir}/$source_frame.y4m"
 
-  if [ -n "$input_frame" -a "$input_frame" = "$new_input_frame" ]; then
-      echo $capture_frame $input_frame $PSNR
-  else
-    input_frame=$new_input_frame
-    OUTPUT_FRAME="$OUTPUT_FRAMES/$capture_frame.png"
-    INPUT_FRAME="$INPUT_FRAMES/$input_frame.png"
-    # output and input frames are cropped to the same size and outut as miff
-    # to standard out. Then they are both piped to compare to get the match
-    # score (from PSNR metric) only.
-    # see https://imagemagick.org/discourse-server/viewtopic.php?t=11786
-    PSNR=`convert convert "$OUTPUT_FRAME" "$INPUT_FRAME" -crop "$CROP_GEOMETRY" +repage miff:- | compare -metric PSNR - null: 2>&1 || true`
-    echo $capture_frame $input_frame $PSNR
-  fi
-done < /dev/stdin
+  rendered="${tmp}/${capture_frame}"
+  convert "$template_file" "${capture_file}" -gravity center -compose blend -composite "${rendered}.png"
+  ffmpeg -loglevel quiet -i ${rendered}.png -pix_fmt yuv420p ${rendered}.y4m
+
+  #[Parsed_psnr_0 @ 0x7fa19640cfc0] PSNR y:33.043090 u:47.720991 v:47.155299 average:34.725616 min:34.725616 max:34.725616
+  psnr_line=`ffmpeg -i "$reference_file" -i "${rendered}.y4m" -lavfi psnr -f null - 2>&1 | grep Parsed_psnr`
+
+  #Get the luma value (y:33.043090)
+  psnr=`echo $psnr_line | awk '{print $5}' | sed -e 's/.*://'`
+  echo $source_frame $capture_frame $psnr
+done
