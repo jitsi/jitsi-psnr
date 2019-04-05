@@ -62,7 +62,8 @@ for x, row in df.iterrows():
         continue
 
     # no gaps
-    if next_frame(previous_source_frame_id) == source_frame_id:
+    diff = source_frame_id - previous_source_frame_id
+    if next_frame(previous_source_frame_id) == source_frame_id or ((diff % 2) == 1 and diff > 0 and diff < 111):
         compute_diff(capture_frame_id, source_frame_id)
         previous_source_frame_id = source_frame_id
         continue

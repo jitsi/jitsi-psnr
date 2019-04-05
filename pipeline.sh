@@ -1,6 +1,6 @@
 #!/bin/sh
 
-REFERENCE_DIR=target/FourPeople_1280x720_60_sequenced_templated
+REFERENCE_DIR=~/Videos/FourPeople_1280x720_60_sequenced_templated
 
 for video_path in "$@"; do
   frames_dirname=`dirname $video_path`/`basename $video_path .mp4`
@@ -14,11 +14,9 @@ for video_path in "$@"; do
     if [ ! -d $frames_dirname ]; then
       mkdir $frames_dirname
       ffmpeg -i $video_path -f image2 $frames_dirname/%d.png
-      ./png2y4m.sh $video_path
     fi
-
+    
     ./map.sh $frames_dirname | tee $frames_map
-    # rm -rf $frames_dirname
   fi
 
   if [ ! -f $trimmed_map ]; then
@@ -33,11 +31,13 @@ for video_path in "$@"; do
 
   if [ ! -f $psnr_result ]; then
     cat $trimmed_map \
-      | python3 psnr.py 2> /dev/null > $frames_dirname.reverse-map
+      | python3 psnr.py 2> $frames_dirname.reverse-map-err > $frames_dirname.reverse-map
     ./compare.sh $frames_dirname.reverse-map $frames_dirname $REFERENCE_DIR template.png | tee $psnr_result
   fi
 
   if [ ! -f $video_desc ]; then
     cat $augmented_map | python3 analyze.py describe | tee $video_desc
   fi
+  
+  # rm -rf $frames_dirname
 done

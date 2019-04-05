@@ -24,8 +24,10 @@ do
   reference_file="${reference_dir}/$source_frame.y4m"
 
   rendered="${tmp}/${capture_frame}"
-  convert "$template_file" "${capture_file}" -gravity center -compose blend -composite "${rendered}.png"
-  ffmpeg -loglevel quiet -i ${rendered}.png -pix_fmt yuv420p ${rendered}.y4m
+  if [ ! -f $rendered.y4m ]; then
+    convert "$template_file" "${capture_file}" -gravity center -compose blend -composite "${rendered}.png"
+    ffmpeg -loglevel quiet -i ${rendered}.png -pix_fmt yuv420p ${rendered}.y4m
+  fi
 
   #[Parsed_psnr_0 @ 0x7fa19640cfc0] PSNR y:33.043090 u:47.720991 v:47.155299 average:34.725616 min:34.725616 max:34.725616
   psnr_line=`ffmpeg -i "$reference_file" -i "${rendered}.y4m" -lavfi psnr -f null - 2>&1 | grep Parsed_psnr`
@@ -34,3 +36,5 @@ do
   psnr=`echo $psnr_line | awk '{print $5}' | sed -e 's/.*://'`
   echo $source_frame $capture_frame $psnr
 done
+
+rm -rf $tmp
