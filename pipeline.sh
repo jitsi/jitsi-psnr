@@ -1,43 +1,56 @@
 #!/bin/sh
 
-REFERENCE_DIR=~/Videos/FourPeople_1280x720_60_sequenced_templated
+reference_frames="$1"
+shift
 
-for video_path in "$@"; do
-  frames_dirname=`dirname $video_path`/`basename $video_path .mp4`
-  frames_map=$frames_dirname.map
-  trimmed_map=$frames_map.trimmed
-  augmented_map=$frames_dirname.augmented
-  video_desc=$frames_dirname.desc
-  psnr_result=$frames_dirname.psnr
+if [ ! -d "$reference_frames" ]; then
+  echo "Usage: $0 reference-frames reconstructed-videos"
+  exit 1
+fi
 
-  if [ ! -f $frames_map ]; then
-    if [ ! -d $frames_dirname ]; then
-      mkdir $frames_dirname
-      ffmpeg -i $video_path -f image2 $frames_dirname/%d.png
-    fi
-    
-    ./map.sh $frames_dirname | tee $frames_map
+pipeline_cleanup() {
+  rm -rf "$reconstructed_frames"
+}
+
+pipeline_maybe_expand() {
+  if [ ! -d $reconstructed_frames ]; then
+    mkdir $reconstructed_frames
+    ffmpeg -i $reconstructed_video -f image2 $reconstructed_frames/%d.png
+  fi
+}
+
+pipeline_maybe_map() {
+  if [ ! -f $map ]; then
+    pipeline_maybe_expand
+    ./map.sh $reconstructed_frames | tee $map
+  fi
+}
+
+for reconstructed_video in "$@"; do
+  reconstructed_frames=`dirname $reconstructed_video`/`basename $reconstructed_video .mp4`
+  map=$reconstructed_frames.map
+  freezes=$reconstructed_frames.freezes
+  psnr=$reconstructed_frames.psnr
+  debug_log=$reconstructed_frames.log
+  error_log=$reconstructed_frames.err
+
+  if [ ! -f $freezes ]; then
+    pipeline_maybe_map
+    cat $map \
+      | python3 analyze.py trim | tee $debug_log \
+      | python3 analyze.py augment | tee $debug_log \
+      | python3 analyze.py describe | tee $freezes
   fi
 
-  if [ ! -f $trimmed_map ]; then
-    cat $frames_map \
-      | python3 analyze.py trim | tee $trimmed_map
+  if [ ! -f $psnr ]; then
+    pipeline_maybe_map
+    pipeline_maybe_expand
+    cat $map \
+      | python3 analyze.py trim | tee $debug_log \
+      | python3 analyze.py augment | tee $debug_log \
+      | python3 psnr.py 2>> $error_log \
+      | ./compare.sh $reference_frames $reconstructed_frames | tee $psnr
   fi
 
-  if [ ! -f $augmented_map ]; then
-    cat $trimmed_map \
-      | python3 analyze.py augment | tee $augmented_map
-  fi
-
-  if [ ! -f $psnr_result ]; then
-    cat $trimmed_map \
-      | python3 psnr.py 2> $frames_dirname.reverse-map-err > $frames_dirname.reverse-map
-    ./compare.sh $frames_dirname.reverse-map $frames_dirname $REFERENCE_DIR template.png | tee $psnr_result
-  fi
-
-  if [ ! -f $video_desc ]; then
-    cat $augmented_map | python3 analyze.py describe | tee $video_desc
-  fi
-  
-  # rm -rf $frames_dirname
+  pipeline_cleanup
 done
